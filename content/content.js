@@ -1,67 +1,92 @@
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-  if (message.type === "EXTRACT") {
-    try {
-      const adapter = getAdapter();
+// content/content.js — Content Script Listener for Context Capsule
 
-      if (!adapter) {
-        sendResponse({
-          success: false,
-          error: "Unsupported website",
-        });
-        return;
-      }
+if (!globalThis.__contextCapsuleLoaded) {
+  globalThis.__contextCapsuleLoaded = true;
 
-      const messages = await adapter.getMessages();
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "EXTRACT") {
+      (async () => {
+        try {
+          const adapter = typeof getAdapter === "function" ? getAdapter() : null;
 
-      if (!messages.length) {
-        sendResponse({
-          success: false,
-          error: "No conversation found",
-        });
-        return;
-      }
+          if (!adapter) {
+            sendResponse({
+              success: false,
+              error: "Unsupported website. Supported: ChatGPT, Claude, and Gemini.",
+            });
+            return;
+          }
 
-      const content = messages.map((m) => `${m.role}: ${m.text}`).join("\n\n");
+          const messages = await adapter.getMessages();
 
-      sendResponse({
-        success: true,
-        content,
-        source: adapter.name,
-      });
-    } catch (error) {
-      sendResponse({
-        success: false,
-        error: error.message,
-      });
+          if (!messages || messages.length === 0) {
+            sendResponse({
+              success: false,
+              error: "No conversation content found on this page.",
+            });
+            return;
+          }
+
+          sendResponse({
+            success: true,
+            source: adapter.name,
+            messages: messages,
+          });
+        } catch (error) {
+          sendResponse({
+            success: false,
+            error: error.message || "Failed to extract conversation context.",
+          });
+        }
+      })();
+
+      return true; // Keep message channel open for async response
     }
 
-    return;
-  }
+    if (message.type === "INJECT") {
+      (async () => {
+        try {
+          const adapter = typeof getAdapter === "function" ? getAdapter() : null;
 
-  if (message.type === "INJECT") {
-    try {
-      const adapter = getAdapter();
+          if (!adapter) {
+            sendResponse({
+              success: false,
+              error: "Unsupported website. Supported: ChatGPT, Claude, and Gemini.",
+            });
+            return;
+          }
 
-      if (!adapter) {
-        sendResponse({
-          success: false,
-          error: "Unsupported website",
-        });
-        return;
-      }
+          let textToInject = message.text;
+          if (!textToInject && message.capsule) {
+            textToInject =
+              typeof capsuleToText === "function"
+                ? capsuleToText(message.capsule)
+                : message.capsule.content || "";
+          }
 
-      adapter.inject(message.content);
+          if (!textToInject) {
+            sendResponse({
+              success: false,
+              error: "No context text available to inject.",
+            });
+            return;
+          }
 
-      sendResponse({
-        success: true,
-      });
-    } catch (error) {
-      sendResponse({
-        success: false,
-        error: error.message,
-      });
+          await adapter.inject(textToInject);
+
+          sendResponse({
+            success: true,
+          });
+        } catch (error) {
+          sendResponse({
+            success: false,
+            error: error.message || "Failed to inject context into chat.",
+          });
+        }
+      })();
+
+      return true; // Keep message channel open for async response
     }
+  });
+}
 
-    return;
-  }
-});

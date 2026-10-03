@@ -2,79 +2,77 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <title>Context Capsule</title>
-
     <link rel="stylesheet" href="popup.css" />
   </head>
-
   <body>
     <div class="app">
       <!-- Header -->
       <header class="header">
         <div class="brand">
           <div class="logo">◈</div>
-
           <div>
             <h1>Context Capsule</h1>
-            <p>Capture once. Reuse anywhere.</p>
+            <p>Portable technical context document</p>
           </div>
         </div>
-
         <span class="version">v1.0</span>
       </header>
 
-      <!-- Capture -->
+      <!-- Capture Section -->
       <section class="section">
-        <label for="title"> CAPSULE NAME </label>
-
-        <input
-          id="title"
-          type="text"
-          placeholder="e.g. Interview Prep"
-          autocomplete="off"
-        />
-
-        <button id="capture" class="primary-button">
-          <span>＋</span>
-          Capture Context
-        </button>
+        <label for="titleInput">CAPSULE TITLE</label>
+        <div class="capture-row">
+          <input
+            id="titleInput"
+            type="text"
+            placeholder="e.g. Backend Interview Notes"
+            autocomplete="off"
+          />
+          <button id="captureBtn" class="primary-button">
+            <span>+</span> Capture
+          </button>
+        </div>
       </section>
 
-      <!-- Divider -->
       <div class="divider"></div>
 
-      <!-- Library -->
+      <!-- Saved Capsules Section -->
       <section class="section">
         <div class="section-heading">
-          <label for="capsuleSelect"> SAVED CAPSULES </label>
-
-          <span id="capsuleCount"> 0 </span>
+          <label for="capsuleSelect">SAVED CAPSULES</label>
+          <span id="capsuleCountBadge" class="count-badge">0</span>
         </div>
 
         <select id="capsuleSelect">
-          <option value="">Select a capsule...</option>
+          <option value="">Select a saved capsule...</option>
         </select>
 
-        <div id="conversationPreview" class="conversation-preview"></div>
+        <div id="capsuleDocument" class="capsule-document">
+          <div class="empty-state">Select or capture a capsule to view document</div>
+        </div>
 
         <div class="actions">
-          <button id="inject" class="secondary-button">Inject</button>
-
-          <button id="delete" class="danger-button">Delete</button>
+          <button id="injectBtn" class="action-button inject-button" disabled>
+            <span>↵</span> Inject into Chat
+          </button>
+          <button id="deleteBtn" class="action-button delete-button" disabled>
+            Delete
+          </button>
         </div>
       </section>
 
-      <!-- Status -->
+      <!-- Status Footer -->
       <footer class="status-bar">
-        <span id="statusDot" class="status-dot"></span>
-
-        <span id="status"> Ready </span>
+        <span id="statusDot" class="status-dot ready"></span>
+        <span id="statusText">Ready</span>
       </footer>
     </div>
 
     <script src="popup.js"></script>
   </body>
 </html>
+
+
+

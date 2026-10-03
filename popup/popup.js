@@ -1,364 +1,397 @@
-const titleInput = document.getElementById("title");
-const captureButton = document.getElementById("capture");
-const status = document.getElementById("status");
-const capsuleSelect = document.getElementById("capsuleSelect");
-const injectButton = document.getElementById("inject");
-const deleteButton = document.getElementById("delete");
-const capsuleCount = document.getElementById("capsuleCount");
-const statusDot = document.getElementById("statusDot");
-const conversationPreview = document.getElementById("conversationPreview");
+// popup/popup.js — UI Controller for Context Capsule
 
-async function loadCapsules() {
+const titleInput = document.getElementById("titleInput");
+const captureBtn = document.getElementById("captureBtn");
+const capsuleSelect = document.getElementById("capsuleSelect");
+const capsuleCountBadge = document.getElementById("capsuleCountBadge");
+const capsuleDocument = document.getElementById("capsuleDocument");
+const injectBtn = document.getElementById("injectBtn");
+const deleteBtn = document.getElementById("deleteBtn");
+const statusDot = document.getElementById("statusDot");
+const statusText = document.getElementById("statusText");
+
+let loadedCapsules = [];
+
+function updateStatus(text, state = "ready") {
+  statusText.textContent = text;
+  statusDot.className = `status-dot ${state}`;
+}
+
+function formatSource(source) {
+  if (!source) return "Unknown";
+  const s = source.toLowerCase();
+  if (s.includes("chatgpt")) return "ChatGPT";
+  if (s.includes("claude")) return "Claude";
+  if (s.includes("gemini")) return "Gemini";
+  return source.charAt(0).toUpperCase() + source.slice(1);
+}
+
+function formatTimeAgo(timestamp) {
+  if (!timestamp) return "";
+  const time = typeof timestamp === "number" ? timestamp : Date.parse(timestamp);
+  if (isNaN(time)) return "";
+
+  const now = Date.now();
+  const seconds = Math.floor((now - time) / 1000);
+
+  if (seconds < 60) return "Just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 172800) return "Yesterday";
+
+  const date = new Date(time);
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function formatFullDate(timestamp) {
+  if (!timestamp) return "";
+  const time = typeof timestamp === "number" ? timestamp : Date.parse(timestamp);
+  if (isNaN(time)) return "";
+  return new Date(time).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+async function loadCapsules(selectId = null) {
   try {
     const response = await chrome.runtime.sendMessage({
       type: "GET_CAPSULES",
     });
 
-    console.log("GET_CAPSULES response:", response);
+    loadedCapsules = Array.isArray(response?.capsules) ? response.capsules : [];
+    capsuleCountBadge.textContent = loadedCapsules.length;
 
-    const capsules = Array.isArray(response?.capsules) ? response.capsules : [];
-    capsuleCount.textContent = capsules.length;
-    capsuleSelect.innerHTML = "<option value=''>Select a capsule</option>";
+    const previousValue = selectId || capsuleSelect.value;
+    capsuleSelect.innerHTML = "<option value=''>Select a saved capsule...</option>";
 
-    for (const capsule of capsules) {
+    for (const capsule of loadedCapsules) {
       const option = document.createElement("option");
       option.value = capsule.id;
-      option.textContent = capsule.title || "Untitled";
-      capsuleSelect.append(option);
+
+      const sourceLabel = formatSource(capsule.source);
+      const msgCount = Array.isArray(capsule.messages) ? capsule.messages.length : 0;
+      const timeLabel = formatTimeAgo(capsule.createdAt);
+
+      option.textContent = `${capsule.title || "Untitled"} (${sourceLabel} · ${msgCount} msgs · ${timeLabel})`;
+      capsuleSelect.appendChild(option);
     }
+
+    if (previousValue && loadedCapsules.some((c) => c.id === previousValue)) {
+      capsuleSelect.value = previousValue;
+    } else if (loadedCapsules.length > 0) {
+      capsuleSelect.value = loadedCapsules[0].id;
+    }
+
+    renderCapsuleDocument();
   } catch (error) {
-    console.error("Loading capsules failed:", error);
-    status.textContent = error.message;
+    console.error("Failed to load capsules:", error);
+    updateStatus(`Error: ${error.message}`, "error");
   }
 }
 
-captureButton.onclick = async () => {
-  status.textContent = "Capturing...";
+function renderCapsuleDocument() {
+  const selectedId = capsuleSelect.value;
+  capsuleDocument.innerHTML = "";
+
+  if (!selectedId) {
+    injectBtn.disabled = true;
+    deleteBtn.disabled = true;
+
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "Select or capture a capsule to view document";
+    capsuleDocument.appendChild(empty);
+    return;
+  }
+
+  const capsule = loadedCapsules.find((c) => c.id === selectedId);
+
+  if (!capsule) {
+    injectBtn.disabled = true;
+    deleteBtn.disabled = true;
+    return;
+  }
+
+  injectBtn.disabled = false;
+  deleteBtn.disabled = false;
+
+  const messages = Array.isArray(capsule.messages) ? capsule.messages : [];
+  const sourceLabel = formatSource(capsule.source);
+  const dateLabel = formatFullDate(capsule.createdAt);
+
+  // Document Title Block
+  const titleBlock = document.createElement("div");
+  titleBlock.className = "doc-title-block";
+
+  const mainLabel = document.createElement("div");
+  mainLabel.className = "doc-main-label";
+  mainLabel.textContent = "CONTEXT CAPSULE";
+
+  const titleEl = document.createElement("h1");
+  titleEl.className = "doc-title";
+  titleEl.textContent = capsule.title || "Untitled Capsule";
+
+  const metaEl = document.createElement("div");
+  metaEl.className = "doc-meta";
+  metaEl.textContent = `${sourceLabel} · ${messages.length} ${
+    messages.length === 1 ? "message" : "messages"
+  }${dateLabel ? " · Captured " + dateLabel : ""}`;
+
+  titleBlock.appendChild(mainLabel);
+  titleBlock.appendChild(titleEl);
+  titleBlock.appendChild(metaEl);
+
+  capsuleDocument.appendChild(titleBlock);
+
+  // Conversation Section Heading
+  const sectionHeading = document.createElement("div");
+  sectionHeading.className = "doc-section-heading";
+  sectionHeading.textContent = "CONVERSATION";
+  capsuleDocument.appendChild(sectionHeading);
+
+  // Conversation Messages
+  for (const message of messages) {
+    const turn = document.createElement("div");
+    turn.className = "doc-turn";
+
+    const roleLabel = document.createElement("div");
+    const roleClass =
+      message.role === "user"
+        ? "user"
+        : message.role === "assistant"
+        ? "assistant"
+        : "conversation";
+    roleLabel.className = `doc-role-label ${roleClass}`;
+    roleLabel.textContent =
+      message.role === "user"
+        ? "YOU"
+        : message.role === "assistant"
+        ? "ASSISTANT"
+        : "CONVERSATION";
+
+    const contentNode = renderFormattedMessageText(message.text || "");
+
+    turn.appendChild(roleLabel);
+    turn.appendChild(contentNode);
+
+    capsuleDocument.appendChild(turn);
+  }
+}
+
+function renderFormattedMessageText(text) {
+  const container = document.createElement("div");
+  container.className = "doc-text-container";
+
+  if (!text) return container;
+
+  const codeBlockRegex = /```([a-zA-Z0-9_-]*)\n?([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    const textBefore = text.slice(lastIndex, match.index);
+    if (textBefore) {
+      container.appendChild(createProseNode(textBefore));
+    }
+
+    const lang = match[1];
+    const codeContent = match[2];
+
+    const pre = document.createElement("pre");
+    pre.className = "doc-code-block";
+
+    if (lang) {
+      const langTag = document.createElement("div");
+      langTag.className = "code-lang-tag";
+      langTag.textContent = lang.toUpperCase();
+      pre.appendChild(langTag);
+    }
+
+    const code = document.createElement("code");
+    code.textContent = codeContent.trim(); // strictly textContent for security
+
+    pre.appendChild(code);
+    container.appendChild(pre);
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  const textAfter = text.slice(lastIndex);
+  if (textAfter) {
+    container.appendChild(createProseNode(textAfter));
+  }
+
+  return container;
+}
+
+function createProseNode(text) {
+  const div = document.createElement("div");
+  div.className = "doc-prose";
+  div.textContent = text; // strictly textContent for security & spatial formatting
+  return div;
+}
+
+
+capsuleSelect.addEventListener("change", renderCapsuleDocument);
+
+captureBtn.onclick = async () => {
+  updateStatus("Capturing...", "loading");
 
   try {
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
     });
-    const result = await chrome.tabs.sendMessage(tab.id, {
-      type: "EXTRACT",
-    });
 
-    console.log("EXTRACT response:", result);
-
-    if (!result?.content) {
-      throw new Error(result?.error || "No content found");
+    if (!tab || !tab.id) {
+      throw new Error("No active tab found.");
     }
 
-    await chrome.runtime.sendMessage({
+    if (!tab.url || !tab.url.startsWith("http")) {
+      throw new Error("Unsupported webpage.");
+    }
+
+    let result;
+    try {
+      result = await chrome.tabs.sendMessage(tab.id, {
+        type: "EXTRACT",
+      });
+    } catch (e) {
+      console.log("Direct message failed, dynamically injecting scripts...", e);
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["content/adapters.js", "content/content.js"],
+      });
+      result = await chrome.tabs.sendMessage(tab.id, {
+        type: "EXTRACT",
+      });
+    }
+
+    if (!result || !result.success) {
+      throw new Error(result?.error || "Failed to extract conversation content.");
+    }
+
+    const title = titleInput.value.trim() || "Untitled Capsule";
+    const newCapsule = {
+      id: crypto.randomUUID(),
+      title: title,
+      source: result.source || new URL(tab.url).hostname,
+      messages: result.messages || [],
+      createdAt: Date.now(),
+      version: 1,
+    };
+
+    const saveResponse = await chrome.runtime.sendMessage({
       type: "SAVE_CAPSULE",
-      capsule: {
-        id: crypto.randomUUID(),
-        title: titleInput.value.trim() || "Untitled",
-        source: new URL(tab.url).hostname,
-        content: result.content,
-        createdAt: Date.now(),
-      },
+      capsule: newCapsule,
     });
-    status.textContent = "Context captured!";
-    statusDot.style.backgroundColor = "#55c99a";
-    await loadCapsules();
+
+    if (saveResponse && !saveResponse.success) {
+      throw new Error(saveResponse.error || "Failed to save capsule.");
+    }
+
+    titleInput.value = "";
+    updateStatus("Captured successfully!", "ready");
+    await loadCapsules(newCapsule.id);
   } catch (error) {
-    status.textContent = `Error: ${error.message}`;
-    statusDot.style.backgroundColor = "#d06b76";
+    console.error("Capture error:", error);
+    updateStatus(`Error: ${error.message}`, "error");
   }
 };
 
-loadCapsules();
-
-function normalizeConversation(content) {
-  const lines = content.split("\n");
-
-  const messages = [];
-
-  let currentRole = null;
-  let currentText = [];
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    if (trimmed.toLowerCase().startsWith("user:")) {
-      if (currentRole && currentText.length) {
-        messages.push({
-          role: currentRole,
-          text: currentText.join("\n").trim(),
-        });
-      }
-
-      currentRole = "user";
-
-      currentText = [trimmed.substring(5).trim()];
-
-      continue;
-    }
-
-    if (trimmed.toLowerCase().startsWith("assistant:")) {
-      if (currentRole && currentText.length) {
-        messages.push({
-          role: currentRole,
-          text: currentText.join("\n").trim(),
-        });
-      }
-
-      currentRole = "assistant";
-
-      currentText = [trimmed.substring(10).trim()];
-
-      continue;
-    }
-
-    if (trimmed) {
-      currentText.push(trimmed);
-    }
-  }
-
-  if (currentRole && currentText.length) {
-    messages.push({
-      role: currentRole,
-      text: currentText.join("\n").trim(),
-    });
-  }
-
-  return messages;
-}
-
-async function showSelectedCapsule() {
-  const selectedId = capsuleSelect.value;
-
-  conversationPreview.innerHTML = "";
-
-  if (!selectedId) {
-    return;
-  }
-
-  const response = await chrome.runtime.sendMessage({
-    type: "GET_CAPSULES",
-  });
-
-  const capsules = Array.isArray(response?.capsules) ? response.capsules : [];
-
-  const capsule = capsules.find((c) => c.id === selectedId);
-
-  if (!capsule) {
-    return;
-  }
-
-  const messages = normalizeConversation(capsule.content);
-
-  for (const message of messages) {
-    const wrapper = document.createElement("div");
-
-    wrapper.className = "message";
-
-    const role = document.createElement("div");
-
-    role.className = "message-role";
-
-    role.textContent = message.role.toUpperCase();
-
-    const text = document.createElement("div");
-
-    text.className = "message-text";
-
-    text.textContent = message.text;
-
-    wrapper.append(role, text);
-
-    conversationPreview.append(wrapper);
-  }
-}
-
-capsuleSelect.addEventListener("change", showSelectedCapsule);
-
-injectButton.onclick = async () => {
+injectBtn.onclick = async () => {
   try {
     const selectedId = capsuleSelect.value;
-
     if (!selectedId) {
-      throw new Error("Select a capsule first");
+      throw new Error("Select a capsule first.");
     }
 
-    // Get capsules
-    const response = await chrome.runtime.sendMessage({
-      type: "GET_CAPSULES",
-    });
-
-    const capsules = Array.isArray(response?.capsules) ? response.capsules : [];
-
-    const capsule = capsules.find((c) => c.id === selectedId);
-
+    const capsule = loadedCapsules.find((c) => c.id === selectedId);
     if (!capsule) {
-      throw new Error("Capsule not found");
+      throw new Error("Selected capsule not found.");
     }
 
-    // Current tab
     const [tab] = await chrome.tabs.query({
       active: true,
-      lastFocusedWindow: true,
+      currentWindow: true,
     });
 
-    if (!tab?.id) {
-      throw new Error("No active tab");
+    if (!tab || !tab.id) {
+      throw new Error("No active tab found.");
     }
 
     const url = new URL(tab.url);
     const host = url.hostname;
 
     if (
-      host !== "chatgpt.com" &&
-      host !== "claude.ai" &&
-      host !== "gemini.google.com"
+      !host.includes("chatgpt.com") &&
+      !host.includes("chat.openai.com") &&
+      !host.includes("claude.ai") &&
+      !host.includes("gemini.google.com")
     ) {
-      throw new Error("Unsupported website");
+      throw new Error("Unsupported website. Open ChatGPT, Claude, or Gemini.");
     }
 
-    status.textContent = "Injecting...";
+    updateStatus("Injecting context...", "loading");
 
-    const results = await chrome.scripting.executeScript({
-      target: {
-        tabId: tab.id,
-      },
-
-      args: [capsule.content, host],
-
-      func: async (text, host) => {
-        function findInput() {
-          if (host === "claude.ai") {
-            return (
-              document.querySelector('[contenteditable="true"]') ||
-              document.querySelector("textarea")
-            );
-          }
-
-          if (host === "gemini.google.com") {
-            return (
-              document.querySelector('[contenteditable="true"]') ||
-              document.querySelector("textarea")
-            );
-          }
-
-          return (
-            document.querySelector("textarea") ||
-            document.querySelector('[contenteditable="true"]')
-          );
-        }
-
-        function waitForInput(timeout = 10000) {
-          return new Promise((resolve, reject) => {
-            const existing = findInput();
-
-            if (existing) {
-              resolve(existing);
-              return;
-            }
-
-            const observer = new MutationObserver(() => {
-              const input = findInput();
-
-              if (input) {
-                observer.disconnect();
-                resolve(input);
-              }
-            });
-
-            observer.observe(document.body, {
-              childList: true,
-              subtree: true,
-            });
-
-            setTimeout(() => {
-              observer.disconnect();
-
-              const input = findInput();
-
-              if (input) {
-                resolve(input);
-              } else {
-                reject(new Error("Chat input not found"));
-              }
-            }, timeout);
-          });
-        }
-
-        const input = await waitForInput();
-
-        input.focus();
-
-        if (input.tagName === "TEXTAREA") {
-          const setter = Object.getOwnPropertyDescriptor(
-            HTMLTextAreaElement.prototype,
-            "value",
-          )?.set;
-
-          if (!setter) {
-            throw new Error("Textarea setter unavailable");
-          }
-
-          setter.call(input, text);
-        } else {
-          input.textContent = text;
-        }
-
-        input.dispatchEvent(
-          new InputEvent("input", {
-            bubbles: true,
-            inputType: "insertText",
-            data: text,
-          }),
-        );
-
-        input.dispatchEvent(
-          new Event("change", {
-            bubbles: true,
-          }),
-        );
-
-        input.focus();
-
-        return {
-          success: true,
-          host,
-          url: location.href,
-        };
-      },
-    });
-
-    console.log("Injection result:", results);
-
-    if (!results?.[0]?.result?.success) {
-      throw new Error("Injection failed");
+    let response;
+    try {
+      response = await chrome.tabs.sendMessage(tab.id, {
+        type: "INJECT",
+        capsule: capsule,
+      });
+    } catch (e) {
+      console.log("Direct message failed, dynamically injecting script...", e);
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["content/adapters.js", "content/content.js"],
+      });
+      response = await chrome.tabs.sendMessage(tab.id, {
+        type: "INJECT",
+        capsule: capsule,
+      });
     }
 
-    status.textContent = `Injected: ${capsule.title}`;
-    statusDot.style.backgroundColor = "#55c99a";
+    if (!response || !response.success) {
+      throw new Error(response?.error || "Injection failed.");
+    }
+
+    updateStatus(`Injected: ${capsule.title}`, "ready");
   } catch (error) {
-    console.error("Injection failed:", error);
-
-    status.textContent = `Error: ${error.message}`;
+    console.error("Injection error:", error);
+    updateStatus(`Error: ${error.message}`, "error");
   }
 };
-deleteButton.onclick = async () => {
+
+deleteBtn.onclick = async () => {
   try {
     const selectedId = capsuleSelect.value;
-
     if (!selectedId) {
-      throw new Error("Select a capsule first");
+      throw new Error("Select a capsule to delete.");
     }
 
-    await chrome.runtime.sendMessage({
+    updateStatus("Deleting...", "loading");
+
+    const response = await chrome.runtime.sendMessage({
       type: "DELETE_CAPSULE",
       id: selectedId,
     });
 
-    status.textContent = "Deleted!";
+    if (response && !response.success) {
+      throw new Error(response.error || "Failed to delete capsule.");
+    }
 
+    updateStatus("Capsule deleted.", "ready");
     await loadCapsules();
   } catch (error) {
-    status.textContent = `Error: ${error.message}`;
+    console.error("Delete error:", error);
+    updateStatus(`Error: ${error.message}`, "error");
   }
 };
+
+// Initial load
+loadCapsules();
+
+
