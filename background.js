@@ -1,12 +1,48 @@
-// background.js — service worker.
-// Currently minimal: storage is handled directly from content.js and popup.js.
-// This is the place to add, later:
-//   - a proper LLM summarization call (chat.completions-style) to turn raw
-//     captured messages into a tighter capsule instead of the raw-text MVP
-//   - cross-device sync (chrome.storage.sync instead of .local) if capsules
-//     should follow you across machines
-//   - context menu integration ("Capture selection as capsule")
+//message handling
+importScripts("shared/storage.js");
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("Context Capsule installed.");
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "GET_CAPSULES") {
+    getCapsules()
+      .then((capsules) => {
+        sendResponse({
+          success: true,
+          capsules: capsules,
+        });
+      })
+      .catch((error) => {
+        sendResponse({
+          success: false,
+          error: error.message,
+        });
+      });
+
+    return true;
+  }
+
+  if (message.type === "SAVE_CAPSULE") {
+    saveCapsule(message.capsule)
+      .then(() => sendResponse({ success: true }))
+      .catch((error) =>
+        sendResponse({
+          success: false,
+          error: error.message,
+        }),
+      );
+
+    return true;
+  }
+
+  if (message.type === "DELETE_CAPSULE") {
+    deleteCapsule(message.id)
+      .then(() => sendResponse({ success: true }))
+      .catch((error) =>
+        sendResponse({
+          success: false,
+          error: error.message,
+        }),
+      );
+
+    return true;
+  }
 });

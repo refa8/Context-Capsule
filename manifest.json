@@ -1,32 +1,29 @@
 {
   "manifest_version": 3,
   "name": "Context Capsule",
-  "version": "0.1.0",
-  "description": "Capture a chat session as a portable capsule and seed it into a new AI chat session.",
+  "version": "1.0.0",
+  "description": "Capture and reuse AI conversation context.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
-    "https://claude.ai/*",
     "https://chatgpt.com/*",
-    "https://chat.openai.com/*",
+    "https://claude.ai/*",
     "https://gemini.google.com/*"
   ],
-  "action": {
-    "default_popup": "popup.html",
-    "default_title": "Context Capsule"
-  },
   "background": {
     "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Context Capsule"
   },
   "content_scripts": [
     {
       "matches": [
-        "https://claude.ai/*",
         "https://chatgpt.com/*",
-        "https://chat.openai.com/*",
+        "https://claude.ai/*",
         "https://gemini.google.com/*"
       ],
-      "js": ["site-adapters.js", "content.js"],
-      "css": ["content.css"],
+      "js": ["content/adapters.js", "content/content.js"],
       "run_at": "document_idle"
     }
   ]

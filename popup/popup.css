@@ -1,0 +1,353 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+
+  width: 360px;
+  min-height: 420px;
+
+  background: #0b0d12;
+  color: #f4f5f7;
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.app {
+  padding: 20px;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  margin-bottom: 24px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: #171a22;
+  border: 1px solid #292e39;
+
+  color: #8b9cff;
+
+  font-size: 19px;
+}
+
+h1 {
+  margin: 0;
+
+  font-size: 15px;
+  font-weight: 650;
+
+  letter-spacing: -0.2px;
+}
+
+.header p {
+  margin: 3px 0 0;
+
+  color: #858b98;
+
+  font-size: 11px;
+}
+
+.version {
+  padding: 4px 7px;
+
+  border-radius: 6px;
+
+  background: #14171e;
+  border: 1px solid #242832;
+
+  color: #777e8c;
+
+  font-size: 9px;
+}
+
+/* =========================
+   SECTIONS
+========================= */
+
+.section {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: #777e8c;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 0.8px;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+}
+
+.section-heading label {
+  margin-bottom: 8px;
+}
+
+#capsuleCount {
+  color: #666d79;
+  font-size: 10px;
+}
+
+/* =========================
+   INPUT
+========================= */
+
+input,
+select {
+  width: 100%;
+
+  height: 40px;
+
+  padding: 0 12px;
+
+  border-radius: 9px;
+
+  background: #11141b;
+
+  border: 1px solid #252a34;
+
+  color: #e8eaf0;
+
+  outline: none;
+
+  font-size: 12px;
+
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+input::placeholder {
+  color: #555c69;
+}
+
+input:focus,
+select:focus {
+  border-color: #5869b8;
+  background: #131720;
+}
+
+select {
+  cursor: pointer;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+button {
+  border: 0;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.12s,
+    opacity 0.12s,
+    background 0.12s;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.primary-button {
+  width: 100%;
+  height: 40px;
+
+  margin-top: 9px;
+
+  border-radius: 9px;
+
+  background: #6878d8;
+
+  color: white;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.primary-button:hover {
+  background: #7484e3;
+}
+
+.primary-button span {
+  margin-right: 5px;
+  font-size: 15px;
+}
+
+.actions {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 8px;
+
+  margin-top: 9px;
+}
+
+.secondary-button,
+.danger-button {
+  height: 36px;
+
+  border-radius: 8px;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.secondary-button {
+  background: #171b24;
+
+  border: 1px solid #292f3b;
+
+  color: #d9dce4;
+}
+
+.secondary-button:hover {
+  background: #1d222d;
+}
+
+.danger-button {
+  background: #171418;
+
+  border: 1px solid #30252a;
+
+  color: #c98991;
+}
+
+.danger-button:hover {
+  background: #20181c;
+}
+
+/* =========================
+   DIVIDER
+========================= */
+
+.divider {
+  height: 1px;
+
+  margin: 0 0 20px;
+
+  background: #1c2028;
+}
+
+/* =========================
+   STATUS
+========================= */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding-top: 4px;
+
+  color: #707784;
+
+  font-size: 10px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #55c99a;
+
+  box-shadow: 0 0 7px rgba(85, 201, 154, 0.45);
+}
+.conversation-preview {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  max-height: 220px;
+
+  margin-top: 12px;
+
+  overflow-y: auto;
+
+  padding-right: 3px;
+}
+
+.message {
+  padding: 10px 11px;
+
+  border-radius: 9px;
+
+  background: #11141b;
+
+  border: 1px solid #222732;
+}
+
+.message-role {
+  margin-bottom: 5px;
+
+  color: #777e8c;
+
+  font-size: 8px;
+  font-weight: 700;
+
+  letter-spacing: 0.8px;
+}
+
+.message-text {
+  color: #cfd3dc;
+
+  font-size: 10px;
+
+  line-height: 1.5;
+
+  white-space: pre-wrap;
+
+  overflow: hidden;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+}

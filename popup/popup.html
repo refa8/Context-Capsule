@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Context Capsule</title>
+
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+
+  <body>
+    <div class="app">
+      <!-- Header -->
+      <header class="header">
+        <div class="brand">
+          <div class="logo">◈</div>
+
+          <div>
+            <h1>Context Capsule</h1>
+            <p>Capture once. Reuse anywhere.</p>
+          </div>
+        </div>
+
+        <span class="version">v1.0</span>
+      </header>
+
+      <!-- Capture -->
+      <section class="section">
+        <label for="title"> CAPSULE NAME </label>
+
+        <input
+          id="title"
+          type="text"
+          placeholder="e.g. Interview Prep"
+          autocomplete="off"
+        />
+
+        <button id="capture" class="primary-button">
+          <span>＋</span>
+          Capture Context
+        </button>
+      </section>
+
+      <!-- Divider -->
+      <div class="divider"></div>
+
+      <!-- Library -->
+      <section class="section">
+        <div class="section-heading">
+          <label for="capsuleSelect"> SAVED CAPSULES </label>
+
+          <span id="capsuleCount"> 0 </span>
+        </div>
+
+        <select id="capsuleSelect">
+          <option value="">Select a capsule...</option>
+        </select>
+
+        <div id="conversationPreview" class="conversation-preview"></div>
+
+        <div class="actions">
+          <button id="inject" class="secondary-button">Inject</button>
+
+          <button id="delete" class="danger-button">Delete</button>
+        </div>
+      </section>
+
+      <!-- Status -->
+      <footer class="status-bar">
+        <span id="statusDot" class="status-dot"></span>
+
+        <span id="status"> Ready </span>
+      </footer>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
